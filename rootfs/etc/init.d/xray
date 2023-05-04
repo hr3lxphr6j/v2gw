@@ -1,0 +1,38 @@
+#!/sbin/openrc-run
+# Copyright 1999-2018 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+
+V2_CONFIG="/etc/v2ray/config.json"
+V2_PIDFILE="/run/xray.pid"
+V2_LOG="/var/log/xray/xray.log"
+V2_LOCATION_ASSET="/usr/share/v2ray"
+
+depend() {
+        need net
+}
+
+checkconfig() {
+        if [ ! -f ${V2_CONFIG} ]; then
+                ewarn "${V2_CONFIG} does not exist."
+        fi
+}
+
+start() {
+        checkconfig || return 1
+
+        ebegin "Starting Xray"
+        ebegin "Log File : ${V2_LOG}"
+        start-stop-daemon --start \
+                -b -1 ${V2_LOG} -2 ${V2_LOG} \
+                -m -p ${V2_PIDFILE} \
+                -e XRAY_LOCATION_ASSET=${V2_LOCATION_ASSET} \
+                --exec /usr/bin/xray -- run -c ${V2_CONFIG}
+        eend $?
+
+}
+
+stop() {
+        ebegin "Stopping Xray"
+        start-stop-daemon --stop -p ${V2_PIDFILE}
+        eend $?
+}

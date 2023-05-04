@@ -1,0 +1,14 @@
+name: Release
+on:
+  push:
+    tags:
+      - "*"
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo .github/release.sh
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: "dist/*"

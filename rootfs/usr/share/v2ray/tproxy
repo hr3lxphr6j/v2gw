@@ -1,0 +1,78 @@
+#!/bin/sh
+
+set -eu
+
+TPROXY_PORT=${TPROXY_PORT:-3614}
+
+enable() {
+    ip rule add fwmark 1 table 100
+    ip route add local 0.0.0.0/0 dev lo table 100
+
+    iptables -t mangle -N V2RAY
+    # localhost
+    iptables -t mangle -A V2RAY -d 127.0.0.1/32 -j RETURN
+    # reserve address
+    iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
+    iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
+    # lan
+    iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p tcp -j RETURN
+    iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
+    # ntp
+    iptables -t mangle -A V2RAY -p udp --dport 123 -j RETURN
+    # add mask
+    iptables -t mangle -A V2RAY -j RETURN -m mark --mark 0xff
+    iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark 1
+    iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark 1
+    iptables -t mangle -A PREROUTING -j V2RAY
+
+    iptables -t mangle -N V2RAY_MASK
+    # reserve address
+    iptables -t mangle -A V2RAY_MASK -d 224.0.0.0/4 -j RETURN
+    iptables -t mangle -A V2RAY_MASK -d 255.255.255.255/32 -j RETURN
+    # lan
+    iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p tcp -j RETURN
+    iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
+    # ntp
+    iptables -t mangle -A V2RAY_MASK -p udp --dport 123 -j RETURN
+    # add mask
+    iptables -t mangle -A V2RAY_MASK -j RETURN -m mark --mark 0xff
+    iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
+    iptables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-mark 1
+    iptables -t mangle -A OUTPUT -j V2RAY_MASK
+
+    iptables -t mangle -N DIVERT
+    iptables -t mangle -A DIVERT -j MARK --set-mark 1
+    iptables -t mangle -A DIVERT -j ACCEPT
+    iptables -t mangle -I PREROUTING -p tcp -m socket -j DIVERT
+}
+
+disable() {
+    ip rule delete fwmark 1 table 100
+    ip route delete local 0.0.0.0/0 dev lo table 100
+
+    iptables -t mangle -F
+    iptables -t mangle -X
+}
+
+show_help() {
+    echo -e "usage: \t$0 enable\n\t$0 disable\n\t$0 help"
+}
+
+main() {
+    if [ $(id -u) -ne 0 ]; then
+        echo "You must run this script as root" && exit 1
+    fi
+
+    if [ $# -eq 0 ]; then
+        show_help && exit 1
+    fi
+
+    case $1 in
+    "enable") enable ;;
+    "disable") disable ;;
+    "help") show_help ;;
+    *) show_help && exit 1 ;;
+    esac
+}
+
+main $@

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eux
+
+V2_LOCATION_ASSET=${V2_LOCATION_ASSET:-/usr/share/v2ray}
+
+update_domain_list_community() {
+    curl -SLfo "${V2_LOCATION_ASSET}/geosite.dat" \
+        "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat"
+}
+
+update_geoip() {
+    for item in cn.dat geoip-only-cn-private.dat geoip.dat private.dat; do
+        curl -SLfo "${V2_LOCATION_ASSET}/${item}" \
+            "https://github.com/v2fly/geoip/releases/latest/download/${item}"
+    done
+}
+
+update_domain_list_community
+update_geoip

@@ -1,0 +1,33 @@
+#!/sbin/openrc-run
+
+V2_EXPORTER_PIDFILE="/run/v2ray-exporter.pid"
+V2_EXPORTER_LOG="/var/log/v2ray-exporter/v2ray-exporter.log"
+V2_EXPORTER_LISTEN=":9550"
+V2_EXPORTER_METRICS_PATH="/scrape"
+V2_EXPORTER_V2RAY_ENDPOINT="127.0.0.1:8080"
+V2_EXPORTER_SCRAPE_TIMEOUT="3"
+
+depend() {
+        need net
+}
+
+start() {
+        ebegin "Starting V2ray Exporter"
+        ebegin "Log File : ${V2_LOG}"
+        start-stop-daemon --start \
+                -b -1 ${V2_EXPORTER_LOG} -2 ${V2_EXPORTER_LOG} \
+                -m -p ${V2_EXPORTER_PIDFILE} \
+                --exec /usr/bin/v2ray-exporter -- \
+                -l "${V2_EXPORTER_LISTEN}" \
+                -m "${V2_EXPORTER_METRICS_PATH}" \
+                -e "${V2_EXPORTER_V2RAY_ENDPOINT}" \
+                -t "${V2_EXPORTER_SCRAPE_TIMEOUT}"
+        eend $?
+
+}
+
+stop() {
+        ebegin "Stopping V2ray Exporter"
+        start-stop-daemon --stop -p ${V2_EXPORTER_PIDFILE}
+        eend $?
+}

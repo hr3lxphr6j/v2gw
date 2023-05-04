@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+V2_LOCATION_ASSET="/usr/share/v2ray"
+
+depend() {
+    need net
+}
+
+start() {
+    ${V2_LOCATION_ASSET}/tproxy enable
+}
+
+stop() {
+    ${V2_LOCATION_ASSET}/tproxy disable
+}
