@@ -19,5 +19,6 @@ cp -r ./rootfs/* "${WORKDIR}/rootfs"
 pushd "${WORKDIR}/rootfs"
 chroot ./ /init.sh
 popd
+mkdir -p dist
 tar Jcvf "dist/v2gw-alpine-rootfs-${ALPINE_VERSION_CHANNEL}-${ALPINE_VERSION}-${ALPINE_ARCH}.tar.xz" \
     -C "${WORKDIR}/rootfs" ./
